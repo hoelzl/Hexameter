@@ -123,26 +123,52 @@
            #:make-class-abstract
            #:normalize-to-keyword))
 
-(defpackage #:spondeios
+(defpackage #:daktylos-impl
   (:use #:common-lisp
         #:gbbopen-tools
         #:hexameter-utilities)
-  (:nicknames #:behavior)
+  ;; Public exports
   (:export #:init #:term #:me
-           #:process #:act))
+           #:message #:respond)
+  ;; Private exports
+  (:export #:coder #:encode #:decode
+           #:json-coder))
 
 (defpackage #:daktylos
-  (:use #:common-lisp
-        #:gbbopen-tools
-        #:hexameter-utilities)
   (:nicknames #:medium)
+  (:use #:daktylos-impl)
   (:export #:init #:term #:me
            #:message #:respond))
 
-(defpackage #:hexameter
+(defpackage #:spondeios-impl
   (:use #:common-lisp
         #:gbbopen-tools
         #:hexameter-utilities)
+  ;; Public exports
+  (:export #:init #:term #:me
+           #:process #:act)
+  ;; Private exports
+  (:export))
+
+(defpackage #:spondeios
+  (:nicknames #:behavior)
+  (:use #:spondeios-impl)
+  (:export #:init #:term #:me
+           #:process #:act))
+
+(defpackage #:hexameter-impl
+  (:use #:common-lisp
+        #:gbbopen-tools
+        #:hexameter-utilities)
+  ;; Public exports
+  (:export #:init #:term #:me
+           #:tell #:process #:respond
+           #:ask #:meet #:friends)
+  ;; Private exports
+  (:export))
+
+(defpackage #:hexameter
+  (:use #:hexameter-impl)
   (:nicknames #:hex)
   (:export #:init #:term #:me
            #:tell #:process #:respond

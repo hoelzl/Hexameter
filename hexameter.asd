@@ -17,11 +17,15 @@
   :maintainer '("Matthias Hoelzl <tc@xantira.com>"
                 "Thomas Gabor <thomas@denkfrei.de>")
   :license "MIT, see file LICENSE"
-  :depends-on (#:alexandria
-               #:cl-ppcre 
+  :depends-on (;; The following three probably have to appear in this order.  Need to
+               ;; investigate further.
                #:gbbopen
                #:module-manager
                #:gbbopen-tools
+
+               #:alexandria
+               #:cl-json
+               #:cl-ppcre 
                #:zeromq)
   :components ((:file "packages")
                (:file "utilities")

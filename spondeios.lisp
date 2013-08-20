@@ -1,4 +1,4 @@
-(in-package #:spondeios)
+(in-package #:spondeios-impl)
 
 (defun remove-matching-from-table (hash pattern)
   (check-type hash hash-table)
