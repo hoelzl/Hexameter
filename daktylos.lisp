@@ -12,17 +12,19 @@
 (defvar *socket-cache* 0
   "The number of sockets that should be recycled; no caching if set to 0.")
 
-;;; TODO: Find a proper name for this class.
-(define-class daktylos ()
-  ((context :initform (required-argument :context))
-   (self :initform (required-argument :self))
-   (port :initform *default-port*)
+(define-class daktylos-context ()
+  ((zeromq-context)
+   (self)
+   (port)
    (processor)
    (resolver)
    (coder)
    (respond-socket)
    (talk-socket)))
 
+
+(defmethod initialize-instance :after ((context daktylos-context) &key)
+  nil)
 
 (define-abstract-class coder ()
   ()

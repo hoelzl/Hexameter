@@ -11,6 +11,14 @@
   (with-once-only-bindings (hash)
     `(maphash (lambda (,key ,value) ,@body) ,hash)))
 
+(define-condition method-not-implemented-error (error)
+  ((method :initarg :method :initform "<unknown method>")
+   (arguments :initarg :arguments :initform "<unknown arguments>"))
+  (:report (lambda (condition stream)
+             (format stream "No method ~A implemented for arguments ~A."
+                     (slot-value condition 'method)
+                     (slot-value condition 'arguments)))))
+
 (define-condition instantiating-abstract-class-error (error)
   ((class :initarg :class :initform (required-argument :class)))
   (:report (lambda (condition stream)
@@ -38,3 +46,4 @@
         (t
          (error "~A is not a string, symbol or keyword." 
                 string-designator))))
+

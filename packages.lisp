@@ -121,6 +121,7 @@
            #:eval-always
            #:instantiating-abstract-class-error 
            #:make-class-abstract
+           #:method-not-implemented-error
            #:normalize-to-keyword))
 
 (defpackage #:daktylos-impl
@@ -146,7 +147,14 @@
         #:hexameter-utilities)
   ;; Public exports
   (:export #:init #:term #:me
-           #:process #:act)
+           #:process #:act
+           #:hexameter-space
+           #:trivial-space #:memory-space
+           #:handle
+           #:hexameter-sphere
+           #:id-sphere #:verbose-sphere
+           #:flagging-sphere #:networking-sphere
+           #:forwarding-sphere)
   ;; Private exports
   (:export))
 

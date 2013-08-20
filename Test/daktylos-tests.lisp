@@ -41,3 +41,4 @@
   (is (string= (decode *json-coder* "\"\"") ""))  
   (is (string= (decode *json-coder* "\"abc\"") "abc"))  
   (is (string= (decode *json-coder* "\"false\"") "false")))
+
