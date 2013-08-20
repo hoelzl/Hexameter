@@ -1,0 +1,5 @@
+Hexameter
+=========
+
+This is the Lisp implementation of the Hexameter communication
+protocol.  Documentation will be provided shortly.
