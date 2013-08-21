@@ -30,7 +30,7 @@
 (define-class spondeios-context ()
   ((me :accessor me :type string :initform "localhost"
        :documentation "The network name of the context.")
-   (message :type function
+   (message :type message-space
             :initform (compose (constantly t) #'process)
             :documentation "The function to send messages.")
    (net :type net
