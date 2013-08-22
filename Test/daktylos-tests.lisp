@@ -3,7 +3,7 @@
 
 (test coder-is-abstract
   (signals instantiating-abstract-class-error
-    (make-instance 'coder)))
+    (make-instance 'hexameter-coder)))
 
 (defvar *json-coder* (make-instance 'json-coder))
 

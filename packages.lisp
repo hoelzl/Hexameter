@@ -132,7 +132,7 @@
   (:export #:init #:term #:me
            #:message #:respond)
   ;; Private exports
-  (:export #:coder #:encode #:decode
+  (:export #:hexameter-coder #:encode #:decode
            #:json-coder))
 
 (defpackage #:daktylos
