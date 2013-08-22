@@ -1,5 +1,7 @@
 (in-package #:daktylos-impl)
 
+(defvar *encoding* :iso-8859-1)
+
 (defvar *recv-tries* 100000
   "The number of times recv is called before aborting, if no data is received.")
 
@@ -97,12 +99,12 @@ return the result as string."))
 
 (defun multisend (socket &rest frames)
   (dolist (frame (butlast frames))
-    (pzmq:send socket frame :sndmore t))
-  (pzmq:send socket (lastcar frames)))
+    (pzmq:send socket frame :encoding *encoding* :sndmore t))
+  (pzmq:send socket (lastcar frames) :encoding *encoding*))
 
 (defun multirecv (socket &rest flags &key)
   (let ((frames '()))
-    (push (apply 'pzmq:recv-string socket flags) frames)
+    (push (apply 'pzmq:recv-string socket :encoding *encoding* flags) frames)
     (while (= (pzmq:getsockopt socket :rcvmore) 1)
-      (push (pzmq:recv-string socket) frames))
+      (push (pzmq:recv-string socket :encoding *encoding*) frames))
     (nreverse frames)))
