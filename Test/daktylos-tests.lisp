@@ -32,6 +32,11 @@
   (is (string= (encode *json-coder* 'true) "\"true\""))
   (is (string= (encode *json-coder* 'false) "\"false\"")))
 
+(test json-encode-hash-tables
+  (is (string= (encode *json-coder* (make-hash-table)) "{}"))
+  (is (string= (encode *json-coder* (plist-hash-table '(:a 1 :b 2)))
+               "{\"a\":1,\"b\":2}")))
+
 (test json-decode-numbers
   (is (= (decode *json-coder* "123") 123))
   (is (= (decode *json-coder* "-1") -1))
@@ -42,3 +47,7 @@
   (is (string= (decode *json-coder* "\"abc\"") "abc"))  
   (is (string= (decode *json-coder* "\"false\"") "false")))
 
+(test json-decode-objects
+  (let ((hash (decode *json-coder* "{\"a\":1,\"b\":2}")))
+    (is (= (gethash "a" hash) 1))
+    (is (= (gethash "b" hash) 2))))

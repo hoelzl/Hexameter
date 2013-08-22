@@ -35,22 +35,21 @@
             &key )
   (zmq:with-context (context 1)
     (setf (zeromq-context-of self) context)
-    (zmq:with-socket (socket context zmq:+router+) ;ISSUE: ok, binding doesn't understand router/dealer, wtf
+    (zmq:with-socket (socket context zmq:+router+)
       (zmq:bind socket (format nil "tcp://*:~A" (port-of self)))
       (setf (respond-socket-of self) socket))))
 
 (defmethod message ((self daktylos-context) msgtype recipient space parameter)
   (let ((msg (format nil "~A~%~%~A" (name-of (coder-of self)) (encode (coder-of self) '())))) ;TODO: analyze what data types we need to use and replace '()
-    (zmq:with-socket (socket (context-of self) zmq:+dealer+)
+    (zmq:with-socket (socket (zeromq-context-of self) zmq:+dealer+)
       (zmq:connect socket (format nil "tcp://~A" recipient)) ;TODO: use resolver here
-      ;(multisend socket "" msg)                              
-)))
+      (multisend socket "" msg))))
 
 (defmethod respond ((self daktylos-context) tries) nil)
 
 
 (define-abstract-class hexameter-coder ()
-  ()
+  ((name))
   (:documentation "Abstract class CODER.
 Abstract superclass of all coders, i.e., classes that contain methods to serialize and
 deserialize messages."))
@@ -70,12 +69,28 @@ return the result as string."))
   ())
 
 (defmethod encode ((coder json-coder) data &optional (stream nil))
-  (if stream
-      (cl-json:encode-json data stream)
-      (cl-json:encode-json-to-string data)))
+  (encode-data-to-json data stream))
 
-(defmethod decode ((coder json-coder) (data string))
-  (cl-json:decode-json-from-string data))
+(defmethod decode ((coder json-coder) data)
+  (decode-json data))
 
-(defmethod decode ((coder json-coder) (data stream))
-  (cl-json:decode-json data))
+(defun send (socket data &optional flags)
+  (let ((msg (make-instance 'zmq:msg :data data)))
+    (zmq:send socket msg flags)))
+
+(defun multisend (socket &rest frames)
+  (dolist (frame (butlast frames))
+    (send socket frame zmq:+sndmore+))
+  (send socket (lastcar frames)))
+
+(defun recv-string (socket &optional flags)
+  (let ((msg (make-instance 'zmq:msg)))
+    (zmq:recv socket msg flags)
+    (zmq:msg-data-as-string msg)))
+
+(defun multirecv (socket &optional flags)
+  (let ((frames '()))
+    (push (recv-string socket flags) frames)
+    (while (= (zmq:getsockopt socket zmq:+rcvmore+) 1)
+      (push (recv-string socket) frames))
+    (nreverse frames)))

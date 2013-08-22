@@ -116,8 +116,12 @@
   (:nicknames #:hex-utils)
   (:import-from #:alexandria . #.*alexandria-imports*)
   (:export . #.*alexandria-imports*)
-  (:export #:define-abstract-class
+  (:export #:decode-json
+           #:define-abstract-class
            #:dohash
+           #:encode-alist-to-json
+           #:encode-data-to-json
+           #:encode-plist-to-json
            #:eval-always
            #:instantiating-abstract-class-error 
            #:make-class-abstract

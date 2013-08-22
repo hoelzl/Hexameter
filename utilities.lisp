@@ -47,3 +47,26 @@
          (error "~A is not a string, symbol or keyword." 
                 string-designator))))
 
+(defmethod yason:encode ((data symbol) &optional stream)
+  (yason:encode (string-downcase (symbol-name data)) stream))
+
+(defun encode-data-to-json (data &optional stream)
+  (if stream
+      (yason:encode data stream)
+      (with-output-to-string (stream)
+        (yason:encode data stream))))
+
+(defun encode-alist-to-json (data &optional stream)
+  (if stream
+      (yason:encode-alist data stream)
+      (with-output-to-string (stream)
+        (yason:encode-alist data stream))))
+
+(defun encode-plist-to-json (data &optional stream)
+  (if stream
+      (yason:encode-plist data stream)
+      (with-output-to-string (stream)
+        (yason:encode-plist data stream))))
+
+(defun decode-json (data)
+  (yason:parse data))

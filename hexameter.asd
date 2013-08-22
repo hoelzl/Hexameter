@@ -24,7 +24,7 @@
                #:gbbopen-tools
 
                #:alexandria
-               #:cl-json
+               #:yason
                #:cl-ppcre 
                #:zeromq)
   :components ((:file "packages")
