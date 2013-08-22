@@ -33,10 +33,10 @@
 (defmethod initialize-instance
     :after ((self daktylos-context)
             &key )
-  (let ((context (zeromq:init 1)))
+  (let ((context (pzmq:ctx-new)))
     (setf (zeromq-context-of self) context)
-    (let ((socket (zeromq:socket context zmq:+router+)))
-      (zmq:bind socket (format nil "tcp://*:~A" (port-of self)))
+    (let ((socket (pzmq:socket context :router)))
+      (pzmq:bind socket (format nil "tcp://*:~A" (port-of self)))
       (setf (respond-socket-of self) socket))))
 
 (defmethod message ((self daktylos-context) msgtype recipient space parameter)
@@ -48,8 +48,8 @@
                           :space space)))
          (body (encode (coder-of self) contents))
          (msg (format nil "~A~%~%~A" (name-of (coder-of self)) body)))
-    (zmq:with-socket (socket (zeromq-context-of self) zmq:+dealer+)
-      (zmq:connect socket (format nil "tcp://~A" recipient)) ;TODO: use resolver here
+    (pzmq:with-socket (socket (zeromq-context-of self)) :dealer
+      (pzmq:connect socket (format nil "tcp://~A" recipient)) ;TODO: use resolver here
       (multisend socket "" msg))))
 
 (defmethod respond ((self daktylos-context) tries) nil)
@@ -95,23 +95,14 @@ return the result as string."))
 (defmethod decode ((coder json-coder) data)
   (decode-json data))
 
-(defun send (socket data &optional flags)
-  (let ((msg (make-instance 'zmq:msg :data data)))
-    (zmq:send socket msg flags)))
-
 (defun multisend (socket &rest frames)
   (dolist (frame (butlast frames))
-    (send socket frame zmq:+sndmore+))
-  (send socket (lastcar frames)))
+    (pzmq:send socket frame :sndmore t))
+  (pzmq:send socket (lastcar frames)))
 
-(defun recv-string (socket &optional flags)
-  (let ((msg (make-instance 'zmq:msg)))
-    (zmq:recv socket msg flags)
-    (zmq:msg-data-as-string msg)))
-
-(defun multirecv (socket &optional flags)
+(defun multirecv (socket &rest flags &key)
   (let ((frames '()))
-    (push (recv-string socket flags) frames)
-    (while (= (zmq:getsockopt socket zmq:+rcvmore+) 1)
-      (push (recv-string socket) frames))
+    (push (apply 'pzmq:recv-string socket flags) frames)
+    (while (= (pzmq:getsockopt socket :rcvmore) 1)
+      (push (pzmq:recv-string socket) frames))
     (nreverse frames)))

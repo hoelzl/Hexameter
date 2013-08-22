@@ -26,7 +26,7 @@
                #:alexandria
                #:yason
                #:cl-ppcre 
-               #:zeromq)
+               #:pzmq)
   :components ((:file "packages")
                (:file "utilities")
 	       (:file "spondeios")
