@@ -23,7 +23,7 @@
                #:gbbopen
                #:module-manager
                #:gbbopen-tools
-               #:zeromq)
+               #:pzmq)
   :components ((:file "packages")
                (:file "hexameter-test-suites")
                (:file "hexameter-utilities-tests")
