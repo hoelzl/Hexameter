@@ -19,7 +19,7 @@
    (me :accessor me :type string :initform (format nil "localhost:~A" *default-port*)
        :documentation "The network name of the context.")
    (port :initform *default-port*
-         :documention "The network port used to listen for incoming messages.")
+         :documentation "The network port used to listen for incoming messages.")
    (processor :type function :initform (lambda (type parameter author space) nil)
               :documentation "The callback function for incoming messages.")
    (resolver :type function :initform (lambda (component) component)
@@ -35,13 +35,13 @@
             &key )
   (zmq:with-context (context 1)
     (setf (zeromq-context-of self) context)
-    (zmq:with-socket (socket context zmq:router) ;ISSUE: ok, binding doesn't understand router/dealer, wtf
+    (zmq:with-socket (socket context zmq:+router+) ;ISSUE: ok, binding doesn't understand router/dealer, wtf
       (zmq:bind socket (format nil "tcp://*:~A" (port-of self)))
       (setf (respond-socket-of self) socket))))
 
 (defmethod message ((self daktylos-context) msgtype recipient space parameter)
   (let ((msg (format nil "~A~%~%~A" (name-of (coder-of self)) (encode (coder-of self) '())))) ;TODO: analyze what data types we need to use and replace '()
-    (zmq:with-socket (socket (context-of self) zmq:dealer)
+    (zmq:with-socket (socket (context-of self) zmq:+dealer+)
       (zmq:connect socket (format nil "tcp://~A" recipient)) ;TODO: use resolver here
       ;(multisend socket "" msg)                              
 )))
