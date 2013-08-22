@@ -24,7 +24,7 @@
               :documentation "The callback function for incoming messages.")
    (resolver :type function :initform (lambda (component) component)
              :documentation "Function maps network addresses onto others.")
-   (coder :type coder :initform :json
+   (coder :type coder :initform (make-instance 'json-coder)
           :documentation "The coder class used for sent messages.")
    (respond-socket :documentation "The socket used to listen for requests.")
    (talk-sockets :documentation "A cache for sockets to talk to other components (not yet used).")))
@@ -40,19 +40,40 @@
       (setf (respond-socket-of self) socket))))
 
 (defmethod message ((self daktylos-context) msgtype recipient space parameter)
-  (let ((msg (format nil "~A~%~%~A" (name-of (coder-of self)) (encode (coder-of self) '())))) ;TODO: analyze what data types we need to use and replace '()
+  (let* ((contents (plist-hash-table
+                    (list :recipient recipient
+                          :author (me self)
+                          :type msgtype
+                          :parameter parameter
+                          :space space)))
+         (body (encode (coder-of self) contents))
+         (msg (format nil "~A~%~%~A" (name-of (coder-of self)) body)))
     (zmq:with-socket (socket (zeromq-context-of self) zmq:+dealer+)
       (zmq:connect socket (format nil "tcp://~A" recipient)) ;TODO: use resolver here
       (multisend socket "" msg))))
 
 (defmethod respond ((self daktylos-context) tries) nil)
 
+(defparameter *coder-names* '(("json" . json-coder)))
+
+(defun find-coder-class (name)
+  (cdr (assoc name *coder-names* :test #'string=)))
+
+(defmethod find-coder-name ((class symbol))
+  (car (rassoc class *coder-names* :test #'eql)))
+
+(defmethod find-coder-name ((class class))
+  (find-coder-name (class-name class)))
 
 (define-abstract-class hexameter-coder ()
   ((name))
   (:documentation "Abstract class CODER.
 Abstract superclass of all coders, i.e., classes that contain methods to serialize and
 deserialize messages."))
+
+(defmethod initialize-instance :after ((self hexameter-coder) &key)
+  (unless (slot-boundp self 'name)
+    (setf (name-of self) (find-coder-name (class-of self)))))
 
 (defgeneric encode (coder data &optional stream)
   (:documentation
