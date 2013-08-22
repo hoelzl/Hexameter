@@ -33,9 +33,9 @@
 (defmethod initialize-instance
     :after ((self daktylos-context)
             &key )
-  (zmq:with-context (context 1)
+  (let ((context (zeromq:init 1)))
     (setf (zeromq-context-of self) context)
-    (zmq:with-socket (socket context zmq:+router+)
+    (let ((socket (zeromq:socket context zmq:+router+)))
       (zmq:bind socket (format nil "tcp://*:~A" (port-of self)))
       (setf (respond-socket-of self) socket))))
 
