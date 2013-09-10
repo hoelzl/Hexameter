@@ -133,7 +133,7 @@
         #:gbbopen-tools
         #:hexameter-utilities)
   ;; Public exports
-  (:export #:init #:term #:me
+  (:export #:init #:term #:me #:couple
            #:message #:respond)
   ;; Private exports
   (:export #:hexameter-coder #:encode #:decode
@@ -142,7 +142,7 @@
 (defpackage #:daktylos
   (:nicknames #:medium)
   (:use #:daktylos-impl)
-  (:export #:init #:term #:me
+  (:export #:init #:term #:me #:couple
            #:message #:respond))
 
 (defpackage #:spondeios-impl
@@ -150,7 +150,7 @@
         #:gbbopen-tools
         #:hexameter-utilities)
   ;; Public exports
-  (:export #:init #:term #:me
+  (:export #:init #:term #:me #:couple
            #:process #:act
            #:hexameter-space
            #:trivial-space #:memory-space
@@ -165,8 +165,12 @@
 (defpackage #:spondeios
   (:nicknames #:behavior)
   (:use #:spondeios-impl)
-  (:export #:init #:term #:me
-           #:process #:act))
+  (:export #:init #:term #:me #:couple
+           #:process #:act
+           #:trivial-space #:memory-space
+           #:id-sphere #:verbose-sphere
+           #:flagging-sphere #:networking-sphere
+           #:forwarding-sphere))
 
 (defpackage #:hexameter-impl
   (:use #:common-lisp

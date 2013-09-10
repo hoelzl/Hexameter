@@ -2,7 +2,7 @@
 
 (defvar *encoding* :iso-8859-1)
 
-(defvar *recv-tries* 100000
+(defvar *recv-tries* 10000
   "The number of times recv is called before aborting, if no data is received.")
 
 (defvar *default-port* 55555
@@ -14,6 +14,8 @@
 (defvar *socket-cache* 0
   "The number of sockets that should be recycled; no caching if set to 0.")
 
+(defun init (&rest args)
+  (apply 'make-instance 'daktylos-context args))
 
 ;; TODO: initforms are only stand-ins
 (define-class daktylos-context ()
@@ -26,7 +28,7 @@
               :documentation "The callback function for incoming messages.")
    (resolver :type function :initform (lambda (component) component)
              :documentation "Function maps network addresses onto others.")
-   (coder :type coder :initform (make-instance 'json-coder)
+   (coder :type hexameter-coder :initform (make-instance 'json-coder)
           :documentation "The coder class used for sent messages.")
    (respond-socket :documentation "The socket used to listen for requests.")
    (talk-sockets :documentation "A cache for sockets to talk to other components (not yet used).")))
@@ -41,6 +43,9 @@
       (pzmq:bind socket (format nil "tcp://*:~A" (port-of self)))
       (setf (respond-socket-of self) socket))))
 
+(defmethod couple ((self daktylos-context) processor)
+  (setf (processor-of self) processor))
+
 (defmethod message ((self daktylos-context) msgtype recipient space parameter)
   (let* ((contents (plist-hash-table
                     (list :recipient recipient
@@ -54,7 +59,35 @@
       (pzmq:connect socket (format nil "tcp://~A" recipient)) ;TODO: use resolver here
       (multisend socket "" msg))))
 
-(defmethod respond ((self daktylos-context) tries) nil)
+(defmethod respond ((self daktylos-context) &optional (tries *recv-tries*))
+  (let ((frames '()))
+    (if (= tries 0)
+        (setf frames (multirecv (respond-socket-of self)))
+        (let ((i 0))
+          (while (and (not frames) (< i tries))
+            (setf frames (multirecv (respond-socket-of self) :dontwait t)) ;TODO: this call throws an error from inside pzmq:recv-string
+            (setf i (+ i 1)))))
+    (if (cdr frames)
+        (destructuring-bind (src del msg) frames
+          (destructuring-bind (header body) (cl-ppcre:split "\\n\\n" msg)
+            (let ((coder (make-instance (find-coder-class header))))
+              (let ((mess (decode coder body)))
+                ; (print (gethash "author" mess))
+                (let ((resp (funcall (processor-of self)
+                                     (gethash "type" mess)
+                                     (gethash "author" mess)
+                                     (gethash "space" mess)
+                                     (gethash "parameter" mess))))
+                  (if resp
+                      (message self 
+                               "ack"
+                               (gethash "author" mess)
+                               (gethash "space" mess)
+                               resp)
+                      t))
+          ))))
+        nil)))
+        
 
 (defparameter *coder-names* '(("json" . json-coder)))
 
@@ -82,7 +115,6 @@ deserialize messages."))
    "Encode DATA using CODER and write the result to stream.  If stream is NIL (the default),
 return the result as string."))
 
-
 ;;; TODO: Specify how the decoding takes place and which message types have to be supported.
 (defgeneric decode (coder message)
   (:documentation
@@ -102,9 +134,9 @@ return the result as string."))
     (pzmq:send socket frame :encoding *encoding* :sndmore t))
   (pzmq:send socket (lastcar frames) :encoding *encoding*))
 
-(defun multirecv (socket &rest flags &key)
+(defun multirecv (socket &key dontwait)
   (let ((frames '()))
-    (push (apply 'pzmq:recv-string socket :encoding *encoding* flags) frames)
-    (while (= (pzmq:getsockopt socket :rcvmore) 1)
+    (push (pzmq:recv-string socket :dontwait dontwait :encoding *encoding*) frames)
+    (while (pzmq:getsockopt socket :rcvmore)
       (push (pzmq:recv-string socket :encoding *encoding*) frames))
     (nreverse frames)))

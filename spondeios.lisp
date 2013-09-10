@@ -1,6 +1,8 @@
 (in-package #:spondeios-impl)
 
-(defvar *default-spheres* '('networking-sphere 'flagging-sphere))
+(defvar *default-space* 'memory-space)
+
+(defvar *default-spheres* (list 'verbose-sphere))          ;spheres raise errors
 
 (defun remove-matching-from-table (hash pattern)
   (check-type hash hash-table)
@@ -27,6 +29,9 @@
 ;;; Context
 ;;; =======
 
+(defun init (&rest args)
+  (apply 'make-instance 'spondeios-context args))
+
 (define-class spondeios-context ()
   ((me :accessor me :type string :initform "localhost"
        :documentation "The network name of the context.")
@@ -42,22 +47,24 @@
 
 (defmethod initialize-instance
     :after ((self spondeios-context)
-            &key (character 'memory-space) (wrappers *default-spheres*))
-  (let ((processor (make-instance character :context self)))
-    (dolist (wrapper wrappers)
-      (setf processor (make-instance wrapper
+            &key (space *default-space*) (spheres *default-spheres*))
+  (let ((processor (make-instance space :context self)))
+    (dolist (sphere spheres)
+      (setf processor (make-instance sphere
                         :context self
                         :continuation processor
                         :direction :in)))
     (setf (processor-of self) processor))
-  (let ((actor (message-of self)))
-    (dolist (wrapper (reverse wrappers))
-      (setf actor (make-instance wrapper
+  (let ((actor (make-instance 'message-space :context self)))
+    (dolist (sphere (reverse spheres))
+      (setf actor (make-instance sphere
                     :context self
                     :continuation actor
                     :direction :out)))
     (setf (actor-of self) actor)))
 
+(defmethod couple ((self spondeios-context) message)
+  (setf (message-of self) message))
 
 ;;; Spaces
 ;;; ======
@@ -87,11 +94,10 @@
 (define-class message-space (hexameter-space)
   ())
 
-(defmethod handle ((self message-space) msgtype author space parameter
-                   &optional recipient)
-  (let ((context (context-of self)))
-    (funcall (message-of context)
-             context msgtype author space parameter recipient)))
+(defmethod handle ((self message-space) msgtype recipient space parameter
+                   &optional author)
+  (funcall (message-of (context-of self)) msgtype recipient space parameter)
+  t)
 
 (define-class memory-space (hexameter-space)
   ((memory :initform (make-hash-table :test 'equalp))))
@@ -122,18 +128,16 @@
 ;;; =======
 
 (define-abstract-class hexameter-sphere (context-dependent)
-  ((context)
-   (continuation)
+  ((continuation)
    (direction)))
 
 
 (define-class id-sphere (hexameter-sphere)
   ())
 
-(defmethod handle ((self id-sphere) msgtype author space parameter
+(defmethod handle ((self id-sphere) msgtype author/recipient space parameter
                    &optional recipient)
-  (funcall #'handle
-           (continuation-of self) msgtype author space parameter recipient))
+  (handle (continuation-of self) msgtype author/recipient space parameter recipient))
 
 (define-class verbose-sphere (hexameter-sphere)
   ())
@@ -146,8 +150,7 @@
         ((eql (direction-of self) :out)
          (format t "~&++  [sent ~A] ~A" msgtype parameter)
          (format t "~&++                 @~A to ~A" space author/recipient)))
-  (funcall #'handle (continuation-of self) msgtype
-           author/recipient space parameter recipient))
+  (handle (continuation-of self) msgtype author/recipient space parameter recipient))
 
 ;;; Hexameter Interface
 ;;; ===================
