@@ -1,8 +1,8 @@
 (in-package #:spondeios-impl)
 
-(defvar *default-space* 'memory-space)
+(defvar *default-space* 'verbose-memory-space)
 
-(defvar *default-spheres* (list 'verbose-sphere))          ;spheres raise errors
+(defvar *default-spheres* (list 'flagging-sphere 'verbose-sphere))
 
 (defun remove-matching-from-table (hash pattern)
   (check-type hash hash-table)
@@ -50,6 +50,7 @@
             &key (space *default-space*) (spheres *default-spheres*))
   (let ((processor (make-instance space :context self)))
     (dolist (sphere spheres)
+      (format t "~&Creating sphere ~A" sphere)
       (setf processor (make-instance sphere
                         :context self
                         :continuation processor
@@ -99,6 +100,7 @@
   (funcall (message-of (context-of self)) msgtype recipient space parameter)
   t)
 
+;; TODO: Implement comparison of tuple contents, making a query like {a=42} match a saved tuple like {a=42, b=43}
 (define-class memory-space (hexameter-space)
   ((memory :initform (make-hash-table :test 'equalp))))
 
@@ -108,20 +110,27 @@
   (setf msgtype (normalize-to-keyword msgtype))
   (ecase-using equal msgtype
     ((:get :qry)
-     (let* ((memory (gethash space (memory-of space) (make-hash-table :test 'equalp)))
-           (response '()))
+     (let* ((memory (gethash space (memory-of self) (make-hash-table :test 'equalp)))
+           (response (list)))
        (when memory
          (dolist (item parameter)
            (when (gethash item memory)
              (push item response)
              (when (equal msgtype :get)
                (remhash item memory)))))
-       response))
+       (values response t)))
     ((:put)
      (let ((memory (ensure-gethash space (memory-of self) (make-hash-table :test 'equalp))))
        (dolist (item parameter)
          (setf (gethash item memory) t)))
-     parameter)))
+     (values parameter t))))
+
+(define-class verbose-memory-space (memory-space)
+  ())
+
+(defmethod handle :before ((self verbose-memory-space) msgtype author space parameter
+                           &optional recipient)
+  (format t "~&**  Requested a ~A at ~A from ~A" msgtype space author))
 
 
 ;;; Spheres
@@ -151,6 +160,20 @@
          (format t "~&++  [sent ~A] ~A" msgtype parameter)
          (format t "~&++                 @~A to ~A" space author/recipient)))
   (handle (continuation-of self) msgtype author/recipient space parameter recipient))
+
+(define-class flagging-sphere (hexameter-sphere)
+  ())
+
+;; NOTE: Currently only supports space flagging
+;; TODO: Implement tuple-flagging
+(defmethod handle ((self flagging-sphere) msgtype author/recipient space parameter
+                   &optional recipient)
+  (cond ((eql (direction-of self) :in)
+         (handle (continuation-of self) msgtype author/recipient (first (cl-ppcre:split "#" space)) parameter))
+        ((eql (direction-of self) :out)
+         (handle (continuation-of self) msgtype author/recipient space parameter))))
+
+
 
 ;;; Hexameter Interface
 ;;; ===================

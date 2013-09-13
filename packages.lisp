@@ -153,7 +153,7 @@
   (:export #:init #:term #:me #:couple
            #:process #:act
            #:hexameter-space
-           #:trivial-space #:memory-space
+           #:trivial-space #:memory-space #:verbose-memory-space
            #:handle
            #:hexameter-sphere
            #:id-sphere #:verbose-sphere
@@ -167,7 +167,7 @@
   (:use #:spondeios-impl)
   (:export #:init #:term #:me #:couple
            #:process #:act
-           #:trivial-space #:memory-space
+           #:trivial-space #:memory-space #:verbose-memory-space
            #:id-sphere #:verbose-sphere
            #:flagging-sphere #:networking-sphere
            #:forwarding-sphere))

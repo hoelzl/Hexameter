@@ -73,19 +73,19 @@
             (let ((coder (make-instance (find-coder-class header))))
               (let ((mess (decode coder body)))
                 ; (print (gethash "author" mess))
-                (let ((resp (funcall (processor-of self)
-                                     (gethash "type" mess)
-                                     (gethash "author" mess)
-                                     (gethash "space" mess)
-                                     (gethash "parameter" mess))))
-                  (if resp
+                (multiple-value-bind (resp resp-p)
+                    (funcall (processor-of self)
+                             (gethash "type" mess)
+                             (gethash "author" mess)
+                             (gethash "space" mess)
+                             (gethash "parameter" mess))
+                  (if resp-p
                       (message self 
                                "ack"
                                (gethash "author" mess)
                                (gethash "space" mess)
-                               resp)
-                      t))
-          ))))
+                               (if resp resp (make-array 0)))
+                      t))))))
         nil)))
         
 

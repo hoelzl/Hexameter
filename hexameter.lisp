@@ -5,9 +5,9 @@
 (defvar *default-port* 55555
   "The default port for listening to requests.")
 
-(defvar *default-space* 'behavior:memory-space)
+(defvar *default-space* 'behavior:verbose-memory-space)
 
-(defvar *default-spheres* '('behavior:verbose-sphere)
+(defvar *default-spheres* (list 'behavior:verbose-sphere)
   "The default spheres used to process messsages.")
 
 (defvar *default-coder* :json)
@@ -27,6 +27,7 @@
              :documentation "The context of the message processing module.")))
 
 ;; TODO: different types of me parameter need to be caught here
+;; TODO: configuring non-default spaces and spheres currently not supported
 (defmethod initialize-instance
     :after ((self hexameter-context)
             &key (space *default-space*) (spheres *default-spheres*) (coder *default-coder*))
@@ -48,5 +49,6 @@
 (defmethod process ((self hexameter-context) msgtype author space parameter)
   (behavior:process (behavior-of self) msgtype author space parameter))
 
+;; NOTE: Due to a bug apparently located in the pzmq binding, this method MUST be called with optional parameter equalling 0
 (defmethod respond ((self hexameter-context) &optional (tries *recv-tries*))
   (medium:respond (medium-of self) tries))
