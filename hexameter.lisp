@@ -1,19 +1,26 @@
 (in-package #:hexameter-impl)
 
-(defvar *default-host* "localhost")
+(defvar *default-host* "localhost"
+  "The default hostname to reach the component.")
 
 (defvar *default-port* 55555
   "The default port for listening to requests.")
 
-(defvar *default-space* 'behavior:verbose-memory-space)
+(defvar *default-space* 'behavior:verbose-memory-space
+  "The default space used to react to messages.")
 
-(defvar *default-spheres* (list 'behavior:verbose-sphere)
-  "The default spheres used to process messsages.")
+(defvar *default-spheres* (list 'behavior:flagging-sphere 'behavior:networking-sphere 'behavior:verbose-sphere)
+  "The default spheres used to process messsages before passing them to the space.")
 
-(defvar *default-coder* :json)
+(defvar *default-coder* :json
+  "The en-/decoder used to serialize message data for transmission")
 
 (defvar *recv-tries* 10000
   "The number of times recv is called before aborting, if no data is received.")
+
+
+;;; Basic hexameter context
+;;; =======================
 
 (defun init (&rest args)
   (apply 'make-instance 'hexameter-context args))
@@ -26,13 +33,12 @@
    (behavior :type spondeios-context
              :documentation "The context of the message processing module.")))
 
-;; TODO: different types of me parameter need to be caught here
-;; TODO: configuring non-default spaces and spheres currently not supported
+;; TODO: different types of me parameter need to be caught here, currently only the default name is supported (i.e. don't use the me parameter yet!)
 (defmethod initialize-instance
     :after ((self hexameter-context)
             &key (space *default-space*) (spheres *default-spheres*) (coder *default-coder*))
-    (setf (behavior-of self) (behavior:init #|:space space :spheres spheres|# :me (me self)))
-    (setf (medium-of self) (medium:init #|:coder coder|# :me (me self)))
+    (setf (behavior-of self) (behavior:init :space space :spheres spheres :me (me self)))
+    (setf (medium-of self) (medium:init :coder coder :me (me self)))
     (let ((behavior-success
             (behavior:couple (behavior-of self)
                     (lambda (msgtype recipient space parameter)
@@ -53,7 +59,9 @@
 (defmethod respond ((self hexameter-context) &optional (tries *recv-tries*))
   (medium:respond (medium-of self) tries))
 
-;;; communication patterns
+
+;;; Communication patterns
+;;; ======================
 
 (defmethod ask ((self hexameter-context) msgtype recipient space parameter)
   (let ((aphrodisiac (make-hash-table :test 'equalp))

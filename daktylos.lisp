@@ -1,6 +1,7 @@
 (in-package #:daktylos-impl)
 
-(defvar *encoding* :iso-8859-1)
+(defvar *encoding* :iso-8859-1
+  "The encoding used for messages.")
 
 (defvar *recv-tries* 10000
   "The number of times recv is called before aborting, if no data is received.")
@@ -13,6 +14,26 @@
 
 (defvar *socket-cache* 0
   "The number of sockets that should be recycled; no caching if set to 0.")
+
+
+;;; Helper functions
+;;; ================
+
+(defun multisend (socket &rest frames)
+  (dolist (frame (butlast frames))
+    (pzmq:send socket frame :encoding *encoding* :sndmore t))
+  (pzmq:send socket (lastcar frames) :encoding *encoding*))
+
+(defun multirecv (socket &key dontwait)
+  (let ((frames '()))
+    (push (pzmq:recv-string socket :dontwait dontwait :encoding *encoding*) frames)
+    (while (pzmq:getsockopt socket :rcvmore)
+      (push (pzmq:recv-string socket :encoding *encoding*) frames))
+    (nreverse frames)))
+
+
+;;; Context
+;;; =======
 
 (defun init (&rest args)
   (apply 'make-instance 'daktylos-context args))
@@ -32,7 +53,6 @@
           :documentation "The coder class used for sent messages.")
    (respond-socket :documentation "The socket used to listen for requests.")
    (talk-sockets :documentation "A cache for sockets to talk to other components (not yet used).")))
-
 
 (defmethod initialize-instance
     :after ((self daktylos-context)
@@ -89,6 +109,9 @@
         nil)))
         
 
+;;; Coders
+;;; ======
+
 (defparameter *coder-names* '(("json" . json-coder)))
 
 (defun find-coder-class (name)
@@ -128,15 +151,3 @@ return the result as string."))
 
 (defmethod decode ((coder json-coder) data)
   (decode-json data))
-
-(defun multisend (socket &rest frames)
-  (dolist (frame (butlast frames))
-    (pzmq:send socket frame :encoding *encoding* :sndmore t))
-  (pzmq:send socket (lastcar frames) :encoding *encoding*))
-
-(defun multirecv (socket &key dontwait)
-  (let ((frames '()))
-    (push (pzmq:recv-string socket :dontwait dontwait :encoding *encoding*) frames)
-    (while (pzmq:getsockopt socket :rcvmore)
-      (push (pzmq:recv-string socket :encoding *encoding*) frames))
-    (nreverse frames)))
