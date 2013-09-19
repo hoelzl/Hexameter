@@ -2,7 +2,7 @@
 
 (defvar *default-space* 'verbose-memory-space)
 
-(defvar *default-spheres* (list 'flagging-sphere 'verbose-sphere))
+(defvar *default-spheres* (list 'flagging-sphere 'networking-sphere 'verbose-sphere))
 
 (defun remove-matching-from-table (hash pattern)
   (check-type hash hash-table)
@@ -15,6 +15,11 @@
           (setf (gethash key matching) value)
           (setf (gethash key non-matching) value)))
     (values non-matching matching)))
+
+(defun printhash (hash)
+  (format t "~&{ ")
+  (maphash (lambda (key val) (format t "~A:~A [~A]" key val (type-of key))) hash)
+  (format t "}"))
 
 (defgeneric friends-of (net))
 ;;; (defgeneric desires-of (net))
@@ -50,7 +55,6 @@
             &key (space *default-space*) (spheres *default-spheres*))
   (let ((processor (make-instance space :context self)))
     (dolist (sphere spheres)
-      (format t "~&Creating sphere ~A" sphere)
       (setf processor (make-instance sphere
                         :context self
                         :continuation processor
@@ -173,6 +177,74 @@
         ((eql (direction-of self) :out)
          (handle (continuation-of self) msgtype author/recipient space parameter))))
 
+(define-class networking-sphere (hexameter-sphere)
+  ((lust :initform (make-hash-table :test 'equalp))
+   (friends :initform (make-hash-table :test 'equalp))))
+
+(defmethod handle ((self networking-sphere) msgtype author/recipient space parameter
+                   &optional recipient)
+  (cond ((eql (direction-of self) :in)
+         (let ((author author/recipient))
+           (if (string= msgtype "ack")
+               (multiple-value-bind (authorlust authorlust-p) (gethash author (lust-of self))
+               (format t "~&//  receiving ack from author ~A associated with ~A" author (gethash author (lust-of self)))
+                 (format t "~&//   net.lust looks like this...")
+                 (printhash (lust-of self))
+                 (if authorlust-p
+                     (multiple-value-bind (spacelust spacelust-p) (gethash space authorlust)
+                       (format t "~&//  ... of lusted author ~A" author)
+                       (if spacelust-p
+                           (progn (format t "~&//  ... from lusted space ~A" space)
+                           (dolist (item parameter)
+                             (format t "~&//  Saving item ~A from ~A @ ~A" item author space)
+                             (push item (gethash space authorlust)))
+                           (format t "~&//  spacelust looks like this: ~A" spacelust))
+                           ()))
+                     ())
+                 (values nil nil))
+               (cond ((string= space "net.lust")
+                      (cond ((string= msgtype "get")
+                             (let ((response nil)
+                                   (response-p nil))
+                               (dolist (item parameter)
+                                 (multiple-value-bind (author author-p) (gethash "author" item)
+                                   (multiple-value-bind (space space-p) (gethash "space" item)
+                                     (if (and author-p space-p)
+                                         (multiple-value-bind (authorlust authorlust-p) (gethash author (lust-of self))
+                                           (if authorlust-p
+                                               (multiple-value-bind (spacelust spacelust-p) (gethash space authorlust)
+                                                 (if spacelust-p
+                                                     (progn
+                           (format t "~&//  spacelust looks like this: ~A" spacelust)
+                                                       (setf response-p t)
+                                                       (dolist (answer spacelust)
+                                                         (push answer response)))
+                                                     ()))
+                                               ()))
+                                         ()))))
+                               (format t "~&//  get on net.lust returns ~A response ~A" response-p response)
+                               (values response response-p)))
+                            ((string= msgtype "put")
+                             (dolist (item parameter)
+                               (multiple-value-bind (author author-p) (gethash "author" item)
+                                 (multiple-value-bind (space space-p) (gethash "space" item)
+                                   (format t "~&//  called put with parameter item containing author ~A and space ~A ..." author space)
+                                   (printhash item)
+                                   (if (and author-p space-p)
+                                       (let ((authorlust (gethash author (lust-of self))))
+                                         (format t "~&//  net.lust received well-formed parameter")
+                                         (setf (gethash author (lust-of self)) (if authorlust (gethash author (lust-of self)) (make-hash-table :test 'equalp)))
+                                         (let ((spacelust (gethash space authorlust)))
+                                           (format t "~&//  saving lust for ~A and space ~A" author space)
+                                           (setf (gethash space authorlust) nil)))
+                                       ()))))
+                             (values parameter t))
+                            ((string= msgtype "qry")
+                             (values nil t))))
+                     (t
+                      (handle (continuation-of self) msgtype author space parameter))))))
+        ((eql (direction-of self) :out)
+         (handle (continuation-of self) msgtype author/recipient space parameter))))
 
 
 ;;; Hexameter Interface

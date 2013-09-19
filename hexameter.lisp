@@ -52,3 +52,20 @@
 ;; NOTE: Due to a bug apparently located in the pzmq binding, this method MUST be called with optional parameter equalling 0
 (defmethod respond ((self hexameter-context) &optional (tries *recv-tries*))
   (medium:respond (medium-of self) tries))
+
+;;; communication patterns
+
+(defmethod ask ((self hexameter-context) msgtype recipient space parameter)
+  (let ((aphrodisiac (make-hash-table :test 'equalp))
+        (response nil)
+        (response-p nil))
+    (setf (gethash "author" aphrodisiac) recipient)
+    (setf (gethash "space" aphrodisiac) space)
+    (process self "put" (me self) "net.lust" (list aphrodisiac))
+    (tell self msgtype recipient space parameter)
+    (while (not response-p)
+      (respond self 0)
+      (multiple-value-bind (resp resp-p) (process self "get" (me self) "net.lust" (list aphrodisiac))
+        (setf response resp)
+        (setf response-p resp-p)))
+    response))
