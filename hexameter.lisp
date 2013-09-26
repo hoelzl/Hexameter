@@ -12,7 +12,7 @@
 (defvar *default-spheres* (list 'behavior:flagging-sphere 'behavior:networking-sphere 'behavior:verbose-sphere)
   "The default spheres used to process messsages before passing them to the space.")
 
-(defvar *default-coder* :json
+(defvar *default-coder* (make-instance 'medium:json-coder)
   "The en-/decoder used to serialize message data for transmission")
 
 (defvar *recv-tries* 10000
