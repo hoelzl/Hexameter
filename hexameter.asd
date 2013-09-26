@@ -22,6 +22,7 @@
                #:gbbopen
                #:module-manager
                #:gbbopen-tools
+               #:gbbopen-core
 
                #:alexandria
                #:yason

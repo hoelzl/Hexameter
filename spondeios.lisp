@@ -147,6 +147,60 @@
                            &optional recipient)
   (format t "~&**  Requested a ~A at ~A from ~A" msgtype space author))
 
+;;; TODO: Move the following definitions to a more sensible place.
+(define-unit-class answer ()
+  (space author value))
+
+(define-unit-class wrapped-value ()
+  (value))
+
+#+ (or)
+(define-unit-class formula ()
+  (contents))
+
+(defmethod print-instance-slots :after ((self wrapped-value) stream)
+  (format stream " Value:")
+  (print-instance-slot-value self 'value stream))
+
+(defgeneric wrap (value)
+  (:method ((self wrapped-value))
+    (warn "Wrapping already wrapped value ~A." self)
+    self)
+  #+ (or)
+  (:method ((self hash-table))
+    (if (eql (gethash :type self nil) :formula)
+        (make-instance 'formula :contents (gethash :contents self 'nothing))
+        (make-instance 'wrapped-value :value self)))
+  (:method (self)
+    (make-instance 'wrapped-value :value self)))
+
+(defgeneric unwrap (wrapped-value)
+  (:method ((self wrapped-value))
+    (value-of self))
+  (:method (self)
+    (warn "Unwrapping non-wrapped value ~A." self)
+    self))
+
+(define-class blackboard-space (hexameter-space)
+  ((translate-tuple-to-unit :initform 'wrap) 
+   (translate-unit-to-tuple :initform 'unwrap)))
+
+(defmethod handle ((self blackboard-space) msgtype author space parameter &optional recipient)
+  (declare (ignore recipient))
+  (setf msgtype (normalize-to-keyword msgtype))
+  (ecase-using equal msgtype
+    ((:get :qry)
+     ;; TODO: Use FIND-INSTANCES with an appropriate pattern
+     ;; Do not use with flagging enabled
+     (let ((answers (find-instances-of-class 'answer)))
+       (when (eql msgtype :get)
+         (mapc 'delete-instance answers))
+       (values (mapcar (translate-unit-to-tuple-of self) answers) t)))
+    ((:put)
+     (let ((translator (translate-tuple-to-unit-of self)))
+       (dolist (item parameter)
+         (funcall translator item))
+       (values parameter t)))))
 
 ;;; Spheres
 ;;; =======

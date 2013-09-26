@@ -131,6 +131,7 @@
 (defpackage #:daktylos-impl
   (:use #:common-lisp
         #:gbbopen-tools
+        #:gbbopen
         #:hexameter-utilities)
   ;; Public exports
   (:export #:init #:term #:me #:couple
@@ -149,6 +150,7 @@
 (defpackage #:spondeios-impl
   (:use #:common-lisp
         #:gbbopen-tools
+        #:gbbopen
         #:hexameter-utilities)
   ;; Public exports
   (:export #:init #:term #:me #:couple
@@ -176,6 +178,7 @@
 (defpackage #:hexameter-impl
   (:use #:common-lisp
         #:gbbopen-tools
+        #:gbbopen
         #:hexameter-utilities)
   ;; Public exports
   (:export #:init #:term #:me
