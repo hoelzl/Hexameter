@@ -143,7 +143,8 @@
   (:nicknames #:medium)
   (:use #:daktylos-impl)
   (:export #:init #:term #:me #:couple
-           #:message #:respond))
+           #:message #:respond
+           #:json-coder))
 
 (defpackage #:spondeios-impl
   (:use #:common-lisp
