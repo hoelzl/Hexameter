@@ -24,12 +24,30 @@
     (pzmq:send socket frame :encoding *encoding* :sndmore t))
   (pzmq:send socket (lastcar frames) :encoding *encoding*))
 
+;;; msg-recv should be probably be defined as follows in pzmq.
+;;; As long as this does not work, we need to catch the error in multirecv.
+#+ (or)
+(defun msg-recv (msg socket &key dontwait)
+  "Receive a message part from a socket. 
+Throw an error if no data is available and DONTWAIT is :error, else return the return code of
+the C Function"
+  (ecase dontwait
+    ((nil :error)
+     (with-c-error-check (:int t)
+       (%msg-recv msg socket (if dontwait 1 0))))
+    (t
+     (%msg-recv msg socket 1))))
+
 (defun multirecv (socket &key dontwait)
   (let ((frames '()))
-    (push (pzmq:recv-string socket :dontwait dontwait :encoding *encoding*) frames)
-    (while (pzmq:getsockopt socket :rcvmore)
-      (push (pzmq:recv-string socket :encoding *encoding*) frames))
-    (nreverse frames)))
+    (handler-case 
+        (let ((frame (pzmq:recv-string socket :dontwait dontwait :encoding *encoding*)))
+          (push frame frames)
+          (while (pzmq:getsockopt socket :rcvmore)
+            (push (pzmq:recv-string socket :encoding *encoding*) frames))
+          (nreverse frames))
+      (pzmq:libzmq-error ()
+        nil))))
 
 
 ;;; Context
