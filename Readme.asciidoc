@@ -1,5 +1,23 @@
 Hexameter
 =========
 
-This is the Lisp implementation of the Hexameter communication
-protocol.  Documentation will be provided shortly.
+This is the Common Lisp/Poem implementation of the Hexameter
+communication protocol.
+
+Hexameter provides a portable implementation of the SCEL communication
+primitives (`get`, `put`, `qry`).  It uses ZeroMQ as message transport
+and encodes payloads using JSON; it is therefore easy to write
+bindings for different languages.  
+
+This implementation provides two different tuple-space variants:
+`memory-space` is a simple memory-based hash table that stores tuples;
+`blackboard-space` uses a http://gbbopen.org/[GBBOpen] blackboard as
+tuple space and can therefore serve particularly well as interface to
+the _Iliad_ runtime for _Poem_.
+
+In addition to this implementation a
+https://github.com/thomasgabor/hexameter[Lua-based implementation] is
+available.  A JavaScript/Node implementation exists but is currently
+not publicly available.  Contact tc@xantira.com for further details.
+
+More complete documentation will be provided shortly.

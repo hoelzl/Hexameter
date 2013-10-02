@@ -736,15 +736,29 @@ asciidoc.install();
 <div id="content">
 <div id="preamble">
 <div class="sectionbody">
-<div class="paragraph"><p>This is the Lisp implementation of the Hexameter communication
-protocol.  Documentation will be provided shortly.</p></div>
+<div class="paragraph"><p>This is the Common Lisp/Poem implementation of the Hexameter
+communication protocol.</p></div>
+<div class="paragraph"><p>Hexameter provides a portable implementation of the SCEL communication
+primitives (<code>get</code>, <code>put</code>, <code>qry</code>).  It uses ZeroMQ as message transport
+and encodes payloads using JSON; it is therefore easy to write
+bindings for different languages.</p></div>
+<div class="paragraph"><p>This implementation provides two different tuple-space variants:
+<code>memory-space</code> is a simple memory-based hash table that stores tuples;
+<code>blackboard-space</code> uses a <a href="http://gbbopen.org/">GBBOpen</a> blackboard as
+tuple space and can therefore serve particularly well as interface to
+the <em>Iliad</em> runtime for <em>Poem</em>.</p></div>
+<div class="paragraph"><p>In addition to this implementation a
+<a href="https://github.com/thomasgabor/hexameter">Lua-based implementation</a> is
+available.  A JavaScript/Node implementation exists but is currently
+not publicly available.  Contact <a href="mailto:tc@xantira.com">tc@xantira.com</a> for further details.</p></div>
+<div class="paragraph"><p>More complete documentation will be provided shortly.</p></div>
 </div>
 </div>
 </div>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-08-20 01:37:48 CEST
+Last updated 2013-10-02 17:08:17 CEST
 </div>
 </div>
 </body>
