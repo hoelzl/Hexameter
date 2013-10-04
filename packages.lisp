@@ -161,7 +161,8 @@
            #:hexameter-sphere
            #:id-sphere #:verbose-sphere
            #:flagging-sphere #:networking-sphere
-           #:forwarding-sphere)
+           #:forwarding-sphere
+           #:blackboard-space)
   ;; Private exports
   (:export))
 
@@ -170,10 +171,12 @@
   (:use #:spondeios-impl)
   (:export #:init #:term #:me #:couple
            #:process #:act
+           #:hexameter-space
            #:trivial-space #:memory-space #:verbose-memory-space
            #:id-sphere #:verbose-sphere
            #:flagging-sphere #:networking-sphere
-           #:forwarding-sphere))
+           #:forwarding-sphere
+           #:blackboard-space))
 
 (defpackage #:hexameter-impl
   (:use #:common-lisp

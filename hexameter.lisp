@@ -33,21 +33,33 @@
    (behavior :type spondeios-context
              :documentation "The context of the message processing module.")))
 
-;; TODO: different types of me parameter need to be caught here, currently only the default name is supported (i.e. don't use the me parameter yet!)
 (defmethod initialize-instance
     :after ((self hexameter-context)
             &key (space *default-space*) (spheres *default-spheres*) (coder *default-coder*))
+  (multiple-value-bind (name resolver)
+      (cond ((typep (me self) 'string)
+             (if (cl-ppcre:scan ":" (me self)) (values (me self) nil) (values (format nil "~A:~A" (me self) *default-port*) nil)))
+            ((typep (me self) 'number)
+             (values (format nil "~A:~A" *default-host* (me self)) nil))
+            ((typep (me self) 'function)
+             (values (funcall (me self) nil) (me self)))
+            ((typep (me self) 'null)
+             (values (format nil "~A:~A" *default-host* *default-port*)))
+            (t
+             (warn "Provided unsuitable value ~A for :me when initializing hexameter." (me self))
+             (values (format nil "~A:~A" *default-host* *default-port*))))
+    (setf (me self) name)
     (setf (behavior-of self) (behavior:init :space space :spheres spheres :me (me self)))
-    (setf (medium-of self) (medium:init :coder coder :me (me self)))
-    (let ((behavior-success
-            (behavior:couple (behavior-of self)
-                    (lambda (msgtype recipient space parameter)
-                      (medium:message (medium-of self) msgtype recipient space parameter))))
-          (medium-success
-            (medium:couple (medium-of self)
-                    (lambda (msgtype author space parameter)
-                      (behavior:process (behavior-of self) msgtype author space parameter)))))
-      (values medium-success behavior-success)))
+    (setf (medium-of self) (medium:init :coder coder :resolver resolver :me (me self))))
+  (let ((behavior-success
+          (behavior:couple (behavior-of self)
+                           (lambda (msgtype recipient space parameter)
+                             (medium:message (medium-of self) msgtype recipient space parameter))))
+        (medium-success
+          (medium:couple (medium-of self)
+                         (lambda (msgtype author space parameter)
+                           (behavior:process (behavior-of self) msgtype author space parameter)))))
+    (values medium-success behavior-success)))
 
 (defmethod tell ((self hexameter-context) msgtype recipient space parameter)
   (behavior:act (behavior-of self) msgtype recipient space parameter))
@@ -55,7 +67,6 @@
 (defmethod process ((self hexameter-context) msgtype author space parameter)
   (behavior:process (behavior-of self) msgtype author space parameter))
 
-;; NOTE: Due to a bug apparently located in the pzmq binding, this method MUST be called with optional parameter equalling 0
 (defmethod respond ((self hexameter-context) &optional (tries *recv-tries*))
   (medium:respond (medium-of self) tries))
 

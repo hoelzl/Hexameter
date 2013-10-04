@@ -6,11 +6,17 @@
 (defvar *recv-tries* 10000
   "The number of times recv is called before aborting, if no data is received.")
 
+(defvar *default-host* "localhost"
+  "The default hostname to reach the component.")
+
 (defvar *default-port* 55555
   "The default port for listening to requests.")
 
-(defvar *default-encoding* :json
+(defvar *default-coder* "json"
   "The default encoding for transmissions.")
+
+(defvar *default-resolver* (lambda (component) (cond ((typep component 'number) (format nil "~A:~A" *default-host* component)) (t component)))
+  "The function used to resolve network addresses (there should be no need to change this).")
 
 (defvar *socket-cache* 0
   "The number of sockets that should be recycled; no caching if set to 0.")
@@ -38,6 +44,7 @@ the C Function"
     (t
      (%msg-recv msg socket 1))))
 
+;; NOTE: ignores libzmq-errors in order to catch EAGAIN when the socket wants to be polled again
 (defun multirecv (socket &key dontwait)
   (let ((frames '()))
     (handler-case 
@@ -56,16 +63,15 @@ the C Function"
 (defun init (&rest args)
   (apply 'make-instance 'daktylos-context args))
 
-;; TODO: initforms are only stand-ins
 (define-class daktylos-context ()
-  ((zeromq-context)
-   (me :accessor me :type string :initform (format nil "localhost:~A" *default-port*)
+  ((zeromq-context :documentation "The ZeroMQ context used by this instance of daktylos")
+   (me :accessor me :type string :initform (format nil "~A:~A" *default-host* *default-port*)
        :documentation "The network name of the context.")
    (port :initform *default-port*
          :documentation "The network port used to listen for incoming messages.")
    (processor :type function :initform (lambda (type parameter author space) nil)
               :documentation "The callback function for incoming messages.")
-   (resolver :type function :initform (lambda (component) component)
+   (resolver :type function :initform *default-resolver*
              :documentation "Function maps network addresses onto others.")
    (coder :type hexameter-coder :initform (make-instance 'json-coder)
           :documentation "The coder class used for sent messages.")
@@ -74,9 +80,21 @@ the C Function"
 
 (defmethod initialize-instance
     :after ((self daktylos-context)
-            &key )
+            &key)
+  (let ((coder (coder-of self))
+       (resolver (resolver-of self)))
+    (setf (coder-of self)
+          (cond ((typep coder 'hexameter-coder) coder)
+                ((typep coder 'string) (make-instance (find-coder-class coder)))
+                ((typep coder 'null) (make-instance (find-coder-class *default-coder*)))
+                (t (warn "Provided unsuitable value ~A for :coder when initializing daktylos." coder) (make-instance (find-coder-class *default-coder*)))))
+    (setf (resolver-of self)
+          (cond ((typep resolver 'function) resolver)
+                ((typep resolver 'null) *default-resolver*)
+                (t (warn "Provided unsuitable value ~A for :resolver when initializing daktylos." resolver) *default-resolver*))))
   (let ((context (pzmq:ctx-new)))
     (setf (zeromq-context-of self) context)
+    (setf (port-of self) (if (cl-ppcre:scan "^(.*):([0-9]+)$" (me self)) (cl-ppcre:regex-replace "^(.*):([0-9]+)$" (me self) "\\2") *default-port*))
     (let ((socket (pzmq:socket context :router)))
       (pzmq:bind socket (format nil "tcp://*:~A" (port-of self)))
       (setf (respond-socket-of self) socket))))
@@ -84,17 +102,19 @@ the C Function"
 (defmethod couple ((self daktylos-context) processor)
   (setf (processor-of self) processor))
 
-(defmethod message ((self daktylos-context) msgtype recipient space parameter)
-  (let* ((contents (plist-hash-table
+(defmethod message ((self daktylos-context) msgtype raw-recipient space parameter)
+  (let* ((recipient (funcall (resolver-of self) raw-recipient))
+         (author (funcall (resolver-of self) (me self)))
+         (contents (plist-hash-table
                     (list :recipient recipient
-                          :author (me self)
+                          :author author
                           :type msgtype
                           :parameter parameter
                           :space space)))
          (body (encode (coder-of self) contents))
          (msg (format nil "~A~%~%~A" (name-of (coder-of self)) body)))
     (pzmq:with-socket (socket (zeromq-context-of self)) :dealer
-      (pzmq:connect socket (format nil "tcp://~A" recipient)) ;TODO: use resolver here
+      (pzmq:connect socket (format nil "tcp://~A" recipient))
       (multisend socket "" msg))))
 
 (defmethod respond ((self daktylos-context) &optional (tries *recv-tries*))
@@ -103,14 +123,13 @@ the C Function"
         (setf frames (multirecv (respond-socket-of self)))
         (let ((i 0))
           (while (and (not frames) (< i tries))
-            (setf frames (multirecv (respond-socket-of self) :dontwait t)) ;TODO: this call throws an error from inside pzmq:recv-string
+            (setf frames (multirecv (respond-socket-of self) :dontwait t))
             (setf i (+ i 1)))))
     (if (cdr frames)
         (destructuring-bind (src del msg) frames
           (destructuring-bind (header body) (cl-ppcre:split "\\n\\n" msg)
             (let ((coder (make-instance (find-coder-class header))))
               (let ((mess (decode coder body)))
-                ; (print (gethash "author" mess))
                 (multiple-value-bind (resp resp-p)
                     (funcall (processor-of self)
                              (gethash "type" mess)

@@ -34,6 +34,15 @@
 (defun init (&rest args)
   (apply 'make-instance 'spondeios-context args))
 
+(defun normalize-param (param builder)
+  (cond ((typep param 'symbol)
+         (funcall builder param))
+        ((typep param 'hexameter-space)
+         param)
+        (t
+         (warn "Unsafe parameter to spondeios")
+         param)))
+
 (define-class spondeios-context ()
   ((me :accessor me :type string :initform "localhost"
        :documentation "The network name of the context.")
@@ -50,19 +59,25 @@
 (defmethod initialize-instance
     :after ((self spondeios-context)
             &key (space *default-space*) (spheres *default-spheres*))
-  (let ((processor (make-instance space :context self)))
+  (let ((processor (normalize-param space (lambda (space-class) (make-instance space-class :context self)))))
     (dolist (sphere spheres)
-      (setf processor (make-instance sphere
-                        :context self
-                        :continuation processor
-                        :direction :in)))
+      (setf processor
+            (normalize-param sphere
+                             (lambda (sphere-class)
+                               (make-instance sphere-class
+                                 :context self
+                                 :continuation processor
+                                 :direction :in)))))
     (setf (processor-of self) processor))
   (let ((actor (make-instance 'message-space :context self)))
     (dolist (sphere (reverse spheres))
-      (setf actor (make-instance sphere
-                    :context self
-                    :continuation actor
-                    :direction :out)))
+      (setf actor
+            (normalize-param sphere
+                             (lambda (sphere-class)
+                               (make-instance sphere-class
+                                 :context self
+                                 :continuation actor
+                                 :direction :out)))))
     (setf (actor-of self) actor)))
 
 (defmethod couple ((self spondeios-context) message)
@@ -75,7 +90,7 @@
 
 (defmethod act ((self spondeios-context) msgtype recipient space parameter
                 &optional author)
-  (cond ((string= recipient (me self))
+  (cond ((equal recipient (me self))
          (process self msgtype recipient space parameter author)
          t)
         (t
@@ -181,6 +196,7 @@
     (warn "Unwrapping non-wrapped value ~A." self)
     self))
 
+;;; NOTE: Do not use with flagging enabled (you want to be flag-transparent)
 (define-class blackboard-space (hexameter-space)
   ((translate-tuple-to-unit :initform 'wrap) 
    (translate-unit-to-tuple :initform 'unwrap)))
@@ -191,7 +207,6 @@
   (ecase-using equal msgtype
     ((:get :qry)
      ;; TODO: Use FIND-INSTANCES with an appropriate pattern
-     ;; Do not use with flagging enabled
      (let ((answers (find-instances-of-class 'answer)))
        (when (eql msgtype :get)
          (mapc 'delete-instance answers))
@@ -242,6 +257,7 @@
         ((eql (direction-of self) :out)
          (handle (continuation-of self) msgtype author/recipient space parameter))))
 
+;; TODO: Support net.friends
 (define-class networking-sphere (hexameter-sphere)
   ((lust :initform (make-hash-table :test 'equalp))
    (friends :initform (make-hash-table :test 'equalp))))
