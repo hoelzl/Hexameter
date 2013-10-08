@@ -27,13 +27,6 @@
   (maphash (lambda (key val) (format t "~A:~A [~A]" key val (type-of key))) hash)
   (format t "}"))
 
-
-;;; Context
-;;; =======
-
-(defun init (&rest args)
-  (apply 'make-instance 'spondeios-context args))
-
 (defun normalize-param (param builder)
   (cond ((typep param 'symbol)
          (funcall builder param))
@@ -43,14 +36,19 @@
          (warn "Unsafe parameter to spondeios")
          param)))
 
+
+;;; Context
+;;; =======
+
+(defun init (&rest args)
+  (apply 'make-instance 'spondeios-context args))
+
 (define-class spondeios-context ()
   ((me :accessor me :type string :initform "localhost"
        :documentation "The network name of the context.")
    (message :type message-space
             :initform (compose (constantly t) #'process)
             :documentation "The function to send messages.")
-   (net :type net
-        :documentation "Network state.")
    (processor :type context-dependent
               :documentation "Function for inward message handling.")
    (actor :type context-dependent
@@ -82,6 +80,12 @@
 
 (defmethod couple ((self spondeios-context) message)
   (setf (message-of self) message))
+
+(defmethod term ((self spondeios-context))
+  (setf (message-of self) nil)
+  (setf (processor-of self) nil)
+  (setf (actor-of self) nil)
+  t)
 
 (defmethod process ((self spondeios-context) msgtype author space parameter
                     &optional recipient)

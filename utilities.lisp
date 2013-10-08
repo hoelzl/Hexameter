@@ -36,7 +36,17 @@
      (define-class ,name ,supers ,slots ,@options)
      (make-class-abstract ',name)))
 
-(defun normalize-to-keyword (string-designator)
+(defun normalize-to-string (keyword &key (negligent nil))
+  (cond ((stringp keyword)
+         keyword)
+        ((or (symbolp keyword) (keywordp keyword))
+         (symbol-name keyword))
+        (t
+         (if negligent
+             keyword
+             (error "~A is not a a string, symbol, or keyword." keyword)))))
+
+(defun normalize-to-keyword (string-designator &key (negligent nil))
   (cond ((keywordp string-designator)
          string-designator)
         ((symbolp string-designator)
@@ -44,8 +54,13 @@
         ((stringp string-designator)
          (make-keyword (string-upcase string-designator)))
         (t
-         (error "~A is not a string, symbol or keyword." 
-                string-designator))))
+         (if negligent
+             string-designator
+             (error "~A is not a string, symbol or keyword." 
+                    string-designator)))))
+
+(defun make-item (&rest slots)
+  (plist-hash-table (map 'list (lambda (slot) (normalize-to-string slot :negligent t)) slots) :test 'equalp))
 
 (defmethod yason:encode ((data symbol) &optional stream)
   (yason:encode (string-downcase (symbol-name data)) stream))

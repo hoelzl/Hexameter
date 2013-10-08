@@ -64,9 +64,9 @@ the C Function"
   (apply 'make-instance 'daktylos-context args))
 
 (define-class daktylos-context ()
-  ((zeromq-context :documentation "The ZeroMQ context used by this instance of daktylos")
-   (me :accessor me :type string :initform (format nil "~A:~A" *default-host* *default-port*)
+  ((me :accessor me :type string :initform (format nil "~A:~A" *default-host* *default-port*)
        :documentation "The network name of the context.")
+   (zeromq-context :documentation "The ZeroMQ context used by this instance of daktylos")
    (port :initform *default-port*
          :documentation "The network port used to listen for incoming messages.")
    (processor :type function :initform (lambda (type parameter author space) nil)
@@ -102,6 +102,11 @@ the C Function"
 (defmethod couple ((self daktylos-context) processor)
   (setf (processor-of self) processor))
 
+(defmethod term ((self daktylos-context))
+  (setf (processor-of self) nil)
+  (pzmq:close (respond-socket-of self))
+  (pzmq:ctx-destroy (zeromq-context-of self)))
+  
 (defmethod message ((self daktylos-context) msgtype raw-recipient space parameter)
   (let* ((recipient (funcall (resolver-of self) raw-recipient))
          (author (funcall (resolver-of self) (me self)))

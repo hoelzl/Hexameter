@@ -126,7 +126,9 @@
            #:instantiating-abstract-class-error 
            #:make-class-abstract
            #:method-not-implemented-error
-           #:normalize-to-keyword))
+           #:normalize-to-keyword
+           #:normalize-to-string
+           #:make-item))
 
 (defpackage #:daktylos-impl
   (:use #:common-lisp
@@ -145,6 +147,7 @@
   (:use #:daktylos-impl)
   (:export #:init #:term #:me #:couple
            #:message #:respond
+           #:hexameter-coder
            #:json-coder))
 
 (defpackage #:spondeios-impl
@@ -172,11 +175,9 @@
   (:export #:init #:term #:me #:couple
            #:process #:act
            #:hexameter-space
-           #:trivial-space #:memory-space #:verbose-memory-space
-           #:id-sphere #:verbose-sphere
-           #:flagging-sphere #:networking-sphere
-           #:forwarding-sphere
-           #:blackboard-space))
+           #:trivial-space #:memory-space #:verbose-memory-space #:blackboard-space
+           #:hexameter-sphere
+           #:id-sphere #:verbose-sphere #:flagging-sphere #:networking-sphere #:forwarding-sphere))
 
 (defpackage #:hexameter-impl
   (:use #:common-lisp
@@ -186,7 +187,8 @@
   ;; Public exports
   (:export #:init #:term #:me
            #:tell #:process #:respond
-           #:ask #:meet #:friends)
+           #:ask #:meet #:friends
+           #:hex-item)
   ;; Private exports
   (:export))
 
@@ -195,7 +197,8 @@
   (:nicknames #:hex)
   (:export #:init #:term #:me
            #:tell #:process #:respond
-           #:ask #:meet #:friends))
+           #:ask #:meet #:friends
+           #:hex-item))
 
 (defpackage #:hexameter-user
   (:use #:common-lisp

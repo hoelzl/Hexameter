@@ -61,6 +61,9 @@
                            (behavior:process (behavior-of self) msgtype author space parameter)))))
     (values medium-success behavior-success)))
 
+(defmethod term ((self hexameter-context))
+  (values (medium:term (medium-of self)) (behavior:term (behavior-of self))))
+
 (defmethod tell ((self hexameter-context) msgtype recipient space parameter)
   (behavior:act (behavior-of self) msgtype recipient space parameter))
 
@@ -73,6 +76,9 @@
 
 ;;; Communication patterns
 ;;; ======================
+
+(defun hex-item (&rest args)
+  (apply 'make-item args))
 
 (defmethod ask ((self hexameter-context) msgtype recipient space parameter)
   (let ((aphrodisiac (make-hash-table :test 'equalp))
