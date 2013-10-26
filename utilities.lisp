@@ -40,7 +40,7 @@
   (cond ((stringp keyword)
          keyword)
         ((or (symbolp keyword) (keywordp keyword))
-         (symbol-name keyword))
+         (string-downcase (symbol-name keyword)))
         (t
          (if negligent
              keyword

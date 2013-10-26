@@ -165,7 +165,8 @@
            #:id-sphere #:verbose-sphere
            #:flagging-sphere #:networking-sphere
            #:forwarding-sphere
-           #:blackboard-space)
+           #:blackboard-space
+           #:constant-space)
   ;; Private exports
   (:export))
 
@@ -175,7 +176,8 @@
   (:export #:init #:term #:me #:couple
            #:process #:act
            #:hexameter-space
-           #:trivial-space #:memory-space #:verbose-memory-space #:blackboard-space
+           #:handle
+           #:trivial-space #:memory-space #:verbose-memory-space #:blackboard-space #:constant-space
            #:hexameter-sphere
            #:id-sphere #:verbose-sphere #:flagging-sphere #:networking-sphere #:forwarding-sphere))
 

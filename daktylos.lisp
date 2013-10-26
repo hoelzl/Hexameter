@@ -15,8 +15,13 @@
 (defvar *default-coder* "json"
   "The default encoding for transmissions.")
 
-(defvar *default-resolver* (lambda (component) (cond ((typep component 'number) (format nil "~A:~A" *default-host* component)) (t component)))
-  "The function used to resolve network addresses (there should be no need to change this).")
+(defvar *default-resolver*
+  (lambda (component)
+    (cond ((typep component 'null) (format nil "~A:~A" *default-host* *default-port*))
+          ((typep component 'number) (format nil "~A:~A" *default-host* component))
+          (t component)))
+  "The default function used to resolve network addresses.")
+;; The function f specified here needs to fulfill the following property: (f (f nil)) is (f nil)
 
 (defvar *socket-cache* 0
   "The number of sockets that should be recycled; no caching if set to 0.")

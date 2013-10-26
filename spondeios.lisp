@@ -30,7 +30,7 @@
 (defun normalize-param (param builder)
   (cond ((typep param 'symbol)
          (funcall builder param))
-        ((typep param 'hexameter-space)
+        ((or (typep param 'hexameter-space) (typep param 'hexameter-sphere)) ; NOTE: while semantically different, spheres and spaces are interchangeable technically
          param)
         (t
          (warn "Unsafe parameter to spondeios")
@@ -165,6 +165,14 @@
 (defmethod handle :before ((self verbose-memory-space) msgtype author space parameter
                            &optional recipient)
   (format t "~&**  Requested a ~A at ~A from ~A" msgtype space author))
+
+;; NOTE: this exists for test purposes for now
+(define-class constant-space (hexameter-space)
+  ())
+
+(defmethod handle ((self constant-space) msgtype author space parameter
+                   &optional recipient)
+  (values (list (make-item :answer 42)) t))
 
 ;;; TODO: Move the following definitions to a more sensible place.
 (define-unit-class answer ()
