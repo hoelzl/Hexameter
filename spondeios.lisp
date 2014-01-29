@@ -320,6 +320,8 @@
                              (values parameter t))
                             ((string= msgtype "qry")
                              (values nil t))))
+                     ((string= space "net.life")
+                      (values parameter t))
                      (t
                       (handle (continuation-of self) msgtype author space parameter))))))
         ((eql (direction-of self) :out)
