@@ -251,10 +251,10 @@
                    &optional recipient)
   (cond ((eql (direction-of self) :in)
          (format t "~&--  [received ~A] ~A" msgtype parameter)
-         (format t "~&--                 @~A from ~A" space author/recipient))
+         (format t "~&--                 @~A from ~A~%" space author/recipient))
         ((eql (direction-of self) :out)
          (format t "~&++  [sent ~A] ~A" msgtype parameter)
-         (format t "~&++                 @~A to ~A" space author/recipient)))
+         (format t "~&++                 @~A to ~A~%" space author/recipient)))
   (handle (continuation-of self) msgtype author/recipient space parameter recipient))
 
 (define-class flagging-sphere (hexameter-sphere)
